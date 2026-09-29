@@ -30,9 +30,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: shellcheck
-        run: shellcheck entrypoint.sh install-univpn.sh vnc_startup.sh novnc_launch.sh \
-                         univpn-keeper.sh danted-start.sh univpn-client uvpaste uvrestore \
-                         fbsetbg Xtigervnc-session
+        run: shellcheck entrypoint.sh install-univpn.sh vnc_startup.sh novnc_launch.sh univpn-keeper.sh danted-start.sh univpn-client uvpaste uvrestore fbsetbg Xtigervnc-session
 
       - name: 校验 compose 文件
         run: docker compose config --quiet
