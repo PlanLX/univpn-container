@@ -1,0 +1,123 @@
+name: 构建并推送镜像
+
+# 推到 main / 打 v* 标签时构建并发布镜像; PR 只构建不推送(验证能编过)。
+# 打标签发版:  git tag v1.0.0 && git push origin v1.0.0
+#             → 产出 1.0.0 / 1.0 / latest 三个标签
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      client_version:
+        description: 客户端版本(留空则沿用 Dockerfile 里的默认值)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: univpn-container
+
+jobs:
+  lint:
+    name: 静态检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: shellcheck
+        run: shellcheck entrypoint.sh install-univpn.sh vnc_startup.sh novnc_launch.sh \
+                         univpn-keeper.sh danted-start.sh univpn-client uvpaste uvrestore \
+                         fbsetbg Xtigervnc-session
+
+      - name: 校验 compose 文件
+        run: docker compose config --quiet
+
+  publish:
+    name: 构建并推送
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # 推送 ghcr.io 需要
+    steps:
+      - uses: actions/checkout@v5
+
+      # 客户端版本号只有一个来源:Dockerfile 里的 ARG 默认值。
+      # 这样改版本只用改一处, workflow 不会和 Dockerfile 说不上话。
+      - name: 解析客户端版本
+        id: client
+        env:
+          INPUT_VERSION: ${{ inputs.client_version }}
+        run: |
+          version="${INPUT_VERSION}"
+          if [ -z "${version}" ]; then
+            version="$(sed -n 's/^ARG CLIENT_VERSION=//p' Dockerfile | head -n 1)"
+          fi
+          if [ -z "${version}" ]; then
+            echo "无法确定客户端版本" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "本次构建的客户端版本: ${version}"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 同时发一份到 GHCR: 国内拉 Docker Hub 经常不通, ghcr.io 是备选
+      - name: 登录 GitHub 容器仓库
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 镜像路径必须全小写, 而 GitHub 用户名/组织名可能是混合大小写(比如 PlanLX),
+      # 直接拼进 ghcr.io/ 会让推送报 invalid reference format。这里统一转小写。
+      - name: 解析镜像命名空间
+        id: ns
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          echo "owner=$(printf '%s' "${OWNER}" | tr '[:upper:]' '[:lower:]')" >> "${GITHUB_OUTPUT}"
+
+      - name: 生成镜像标签
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME || 'planlx' }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ steps.ns.outputs.owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 构建并推送
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # 客户端只有 amd64 版, 不做多架构。Apple Silicon 靠 Rosetta 转译运行。
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CLIENT_VERSION=${{ steps.client.outputs.version }}
+          # 客户端安装包和 noVNC 都从网上下载, 缓存层能省不少时间
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -6,7 +6,10 @@
 
 # 键盘布局, 没配就算了
 if test -r /etc/default/keyboard && test -x /usr/bin/setxkbmap; then
+    # shellcheck source=/dev/null
     . /etc/default/keyboard
+    # XKBOPTIONS 里的多个选项要展开成独立参数, 不能加引号
+    # shellcheck disable=SC2086
     /usr/bin/setxkbmap \
         -model "${XKBMODEL:-pc105}" \
         -layout "${XKBLAYOUT:-us}" \

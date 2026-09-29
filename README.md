@@ -81,6 +81,18 @@ docker compose exec univpn ip -br link     # VPN 连上之后执行
 | `APT_MIRROR` | 空 | 国内构建用的 apt 镜像站 |
 | `TZ` | `Asia/Shanghai` | 时区 |
 
+## 镜像仓库
+
+镜像由 CI 构建并发布到两个仓库(构建配置见 `.github/workflows/docker-publish.yml`):
+
+| 仓库 | 地址 |
+|---|---|
+| Docker Hub | `planlx/univpn-container` |
+| GHCR | `ghcr.io/planlx/univpn-container` |
+
+不想本地构建就 `docker pull planlx/univpn-container:latest`, 再按上面的权限要求
+(`cap_add` / TUN 设备 / 端口映射)起容器。
+
 ## 构建
 
 ```bash
