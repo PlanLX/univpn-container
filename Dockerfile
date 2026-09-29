@@ -148,6 +148,7 @@ COPY univpn-client /usr/local/bin/univpn-client
 COPY fbsetbg /usr/local/bin/fbsetbg
 COPY uvpaste /usr/local/bin/uvpaste
 COPY uvrestore /usr/local/bin/uvrestore
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 # Windows 上编辑过的文件很容易带上 CRLF。在 Linux 里 CR 会变成内容的一部分:
 # shebang 变成 "python3\r" 直接 command not found(127), danted 会把 "\r" 当成网卡名,
 # tinyproxy 会拒绝解析配置。构建时统一清掉, 免得踩这个坑。
@@ -166,7 +167,8 @@ RUN set -eux; \
              /usr/local/bin/univpn-keeper.sh /usr/local/bin/univpn-client \
              /usr/local/bin/fbsetbg \
              /usr/local/bin/uvpaste \
-             /usr/local/bin/uvrestore /usr/local/bin/reconnect \
+             /usr/local/bin/uvrestore /usr/local/bin/entrypoint.sh \
+             /usr/local/bin/reconnect \
              /etc/X11/Xtigervnc-session; \
     mv /usr/bin/fbsetbg /usr/bin/fbsetbg.real; \
     cp /usr/local/bin/fbsetbg /usr/bin/fbsetbg; \
@@ -187,4 +189,6 @@ VOLUME ["/home/vpnuser/UniVPN"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD wget -q -O /dev/null "http://127.0.0.1:${NOVNC_PORT}/" || exit 1
 
+# entrypoint 解析 VNC 密码(未设置则随机生成)并打印访问信息, 再 exec supervisord
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

@@ -16,6 +16,12 @@ noVNC 用的是**随机宿主端口**, 先查一下再打开:
 docker compose port univpn 6901          # 例如 0.0.0.0:9863 → 打开 http://localhost:9863
 ```
 
+浏览器入口会自动填密码, 不用记。要用原生 VNC 客户端的话, 密码在启动日志里:
+
+```bash
+docker compose logs univpn | grep 'VNC 密码'
+```
+
 嫌每次查麻烦, 把 `docker-compose.yml` 里的 `- "6901"` 改成 `- "6901:6901"` 就是固定 6901。
 
 | 入口 | 地址 | 用途 |
@@ -63,7 +69,7 @@ docker compose exec univpn ip -br link     # VPN 连上之后执行
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `VNC_PASSWORD` | `univpn` | VNC/noVNC 密码 |
+| `VNC_PASSWORD` | 未设置时随机生成 | VNC/noVNC 密码。随机密码打印在启动日志里, 并存到 `./data/univpn/.vnc-password`, 重启沿用 |
 | `CLIENT_VERSION` | `10781.21.0.0831` | 客户端版本, 也是镜像 tag |
 | `CLIENT_ZIP_URL` | 空 | 安装包直链, 一般不用 |
 | `VNC_RESOLUTION` | `1024x768` | 桌面分辨率 |

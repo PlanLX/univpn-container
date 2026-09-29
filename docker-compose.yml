@@ -42,8 +42,9 @@ services:
       - "8889:8888"   # HTTP 代理 (Tinyproxy -> SOCKS5)
 
     environment:
-      # 容器里 VNC 密码的变量名是 VNC_PW, 这里兼容 .env 里的 VNC_PASSWORD
-      - VNC_PW=${VNC_PASSWORD:-univpn}
+      # 容器里 VNC 密码的变量名是 VNC_PW。留空 = 入口脚本随机生成,
+      # 打印在启动日志里, 并存到 ./data/univpn/.vnc-password, 重启沿用
+      - VNC_PW=${VNC_PASSWORD:-}
       - VNC_RESOLUTION=${VNC_RESOLUTION:-1024x768}
       - VNC_DEPTH=${VNC_DEPTH:-24}
       - AUTO_RECONNECT=${AUTO_RECONNECT:-false}
