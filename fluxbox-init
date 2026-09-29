@@ -1,0 +1,12 @@
+# fluxbox 配置(只写必要的几项, 其余用内置默认值)。
+#
+# 自备一份是为了覆盖默认的 rootCommand(fbsetbg -l): 容器没装壁纸工具,
+# 那行命令会触发 xmessage 弹窗, 这里换成 xsetroot 铺纯色底。
+
+session.screen0.rootCommand: xsetroot -solid #2b2b2b
+
+# 底部任务栏(窗口列表 / 工作区切换 / 时钟)
+session.screen0.toolbar.visible: true
+
+# 窗口双击标题栏最大化, 单窗口时省事
+session.screen0.window.focus.model: ClickToFocus

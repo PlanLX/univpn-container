@@ -1,0 +1,6 @@
+# fluxbox 快捷键
+# Ctrl+Alt+T 开终端(容器里调试用, 比如看网卡、ping 内网)
+Mod1 Mod4 t :Exec xterm
+# 切换窗口
+Mod1 Tab :NextWindow
+Mod1 Shift Tab :PrevWindow

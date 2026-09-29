@@ -1,0 +1,25 @@
+#!/bin/sh
+# TigerVNC 的会话脚本(xstartup)。vncserver 会以 vpnuser 身份执行本文件。
+#
+# 注意: 这个脚本不能退出 —— 一旦退出 TigerVNC 会认为会话结束, 把整个桌面杀掉。
+# 所以最后要用死循环挂住(客户端和窗口管理器的死活由它们自己/keeper 负责)。
+
+# 键盘布局, 没配就算了
+if test -r /etc/default/keyboard && test -x /usr/bin/setxkbmap; then
+    . /etc/default/keyboard
+    /usr/bin/setxkbmap \
+        -model "${XKBMODEL:-pc105}" \
+        -layout "${XKBLAYOUT:-us}" \
+        -variant "${XKBVARIANT:-}" \
+        ${XKBOPTIONS:-} || true
+fi
+
+# 极简窗口管理器: 负责窗口定位/焦点; 没有它 Qt 窗口会无处安放
+/usr/bin/fluxbox >/dev/null 2>&1 &
+
+# 客户端(带崩溃自动重启, 可选断线重连)
+/usr/local/bin/univpn-keeper.sh &
+
+while true; do
+    sleep 3600
+done

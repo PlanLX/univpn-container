@@ -1,0 +1,6 @@
+# 这个项目里的文件基本都是要在 Linux 容器里跑的文本配置/脚本,
+# 用 LF 保存最省心(CRLF 会让 shebang 变成 "python3\r", danted 会把 \r 当成网卡名)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.zip binary

@@ -1,0 +1,45 @@
+#!/bin/sh
+# 把宿主机上的文字直接送进容器的 X 剪贴板, 并给当前窗口发一次 Ctrl+V。
+# 比 noVNC 侧边栏的剪贴板面板稳: 面板要手动失焦才同步, 密码/验证码这类
+# 带符号的内容经常漏字。
+#
+# 用法(在宿主机上; 先在 UniVPN 界面里点一下要输入的那个框):
+#   printf '%s' '你的密码' | docker compose exec -T univpn uvpaste
+#   docker compose exec -T univpn uvpaste 'some text'
+set -eu
+
+# 以 root 执行时切回 vpnuser —— X 会话和 .Xauthority 都是 vpnuser 的
+if [ "$(id -u)" = "0" ]; then
+    exec sudo -u vpnuser -- env \
+        DISPLAY="${DISPLAY:-:1}" \
+        HOME=/home/vpnuser \
+        XAUTHORITY="${XAUTHORITY:-/home/vpnuser/.Xauthority}" \
+        /usr/local/bin/uvpaste "$@"
+fi
+
+export DISPLAY="${DISPLAY:-:1}"
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+
+if [ "$#" -gt 0 ]; then
+    text="$*"
+else
+    text="$(cat)"
+fi
+
+if [ -z "${text}" ]; then
+    echo "用法: printf '%s' '要粘贴的文字' | docker compose exec -T univpn uvpaste" >&2
+    exit 1
+fi
+
+# 放进 CLIPBOARD 选择区(就是 Ctrl+V 用的那个); xclip 会自己挂在后台持有这个选择区
+printf '%s' "${text}" | xclip -selection clipboard -i
+
+# 尽量把 UniVPN 主窗口拉到前台, 免得 Ctrl+V 落到桌面或者别的窗口上
+for win in $(xdotool search --name '[Uu]niVPN' 2>/dev/null || true); do
+    xdotool windowmap "${win}" 2>/dev/null || true
+    xdotool windowactivate --sync "${win}" 2>/dev/null || true
+done
+
+sleep 0.3
+xdotool key --clearmodifiers ctrl+v
+echo "已粘贴 ${#text} 个字符"

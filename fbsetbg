@@ -1,0 +1,11 @@
+#!/bin/sh
+# 替换发行版的 fbsetbg(原版保留为 fbsetbg.real)。
+#
+# fluxbox 默认调 fbsetbg 设壁纸; 容器里没装任何壁纸工具, 原版找不到可用工具时会
+# 弹一个 xmessage 提示框挡住登录界面。这个容器的桌面只需纯色底, 这里直接替换为
+# xsetroot 铺色, 不管 fluxbox 因什么调用它, 都会安静地成功。
+# 想改底色改 ROOT_COLOR(与 ~/.fluxbox/init 里的 rootCommand 保持一致)。
+
+ROOT_COLOR="#2b2b2b"
+/usr/bin/xsetroot -solid "${ROOT_COLOR}" 2>/dev/null || true
+exit 0

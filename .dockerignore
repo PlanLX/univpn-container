@@ -1,0 +1,21 @@
+# 本地运行时数据与配置, 不进构建上下文
+data/
+.env
+
+# 版本控制 / CI
+.git/
+.github/
+.gitignore
+.gitattributes
+.editorconfig
+
+# 文档(镜像里用不到)
+docs/
+*.md
+
+# 私有开发文档
+.design/
+.plan/
+.task/
+
+# 客户端安装包保留在构建上下文里(所在 assets/, 供离线构建用), 这里不排除

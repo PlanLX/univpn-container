@@ -1,0 +1,20 @@
+#!/bin/sh
+# 启动 UniVPN 客户端。必须走这个包装, 不要直接跑 /usr/local/UniVPN/UniVPN。
+#
+# 客户端自带一套 Qt 5.15.3(/usr/local/UniVPN/lib, 含编译好的 xcb 平台插件,
+# qt.conf 写死用这份), 但二进制本身没有 RPATH, 直接运行会去解析发行版 Qt。
+# 底座 Ubuntu 22.04 的系统 Qt 恰好也是 5.15.3, 两版混用不冲突。
+# 这里把自带的 lib 放到库搜索路径最前面, 作为第二道保险: 无论底座 Qt 版本如何,
+# 客户端只会加载自己那份 5.15.3, 不会拼出两个版本而 core dump。
+# 注意: libqxcb.so 还依赖发行版的 libxcb-* 支撑库, Dockerfile 里已显式列出, 别删。
+set -eu
+
+export LD_LIBRARY_PATH="/usr/local/UniVPN/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+
+# Qt 应用想要这个目录, 不设会告警并退回到 /tmp
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${HOME:-/home/vpnuser}/.runtime}"
+mkdir -p "${XDG_RUNTIME_DIR}"
+chmod 700 "${XDG_RUNTIME_DIR}" 2>/dev/null || true
+
+cd /usr/local/UniVPN
+exec /usr/local/UniVPN/UniVPN "$@"

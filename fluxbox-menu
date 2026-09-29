@@ -1,0 +1,16 @@
+# fluxbox 右键菜单(桌面空白处右键)
+# 提示: noVNC 里右键是 Ctrl+左键, 或者用侧边栏的键盘图标
+[begin] (UniVPN)
+    [exec] (终端) {xterm}
+    [exec] (UniVPN 客户端) {/usr/local/bin/univpn-client}
+    [submenu] (网络)
+        [exec] (网卡列表) {xterm -e "ip -br link; echo; read -p 回车关闭"}
+        [exec] (进程列表) {xterm -e "ps -eo pid,args | grep -i univpn; echo; read -p 回车关闭"}
+        [exec] (重启客户端) {/usr/local/bin/reconnect}
+    [end]
+    [submenu] (桌面)
+        [restart] (重启 fluxbox) {fluxbox}
+        [exec] (重连 VNC) {}
+        [exit] (退出 fluxbox) {fluxbox-remote exit}
+    [end]
+[end]

@@ -1,0 +1,60 @@
+# 华为/联软 UniVPN 客户端 + noVNC
+#
+# 用法:
+#   docker compose up -d --build
+#   docker compose port univpn 6901      # 查 noVNC 的宿主端口(随机分配)
+#   浏览器打开 http://localhost:<上面查到的端口>   (密码见 .env 里的 VNC_PASSWORD)
+#
+# 之后随时: docker compose logs -f / docker compose down
+
+services:
+  univpn:
+    build:
+      context: .
+      args:
+        # 客户端版本, 在 .env 里改; 想用别的版本也可以把安装包放进 assets/
+        CLIENT_VERSION: ${CLIENT_VERSION:-10781.21.0.0831}
+        # 安装包直链, 一般留空; 也可以指向自己内网的地址
+        CLIENT_ZIP_URL: ${CLIENT_ZIP_URL:-}
+        # 国内构建慢的话可以换镜像站, 例如 mirrors.tuna.tsinghua.edu.cn
+        APT_MIRROR: ${APT_MIRROR:-}
+    image: univpn:${CLIENT_VERSION:-10781.21.0.0831}
+    container_name: univpn
+    platform: linux/amd64
+    restart: unless-stopped
+    stop_grace_period: 10s
+
+    # VPN 客户端要改路由表、建 TUN 设备
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    # 服务端校验客户端 MAC 时用 .env 里的 SPOOF_MAC 覆盖
+    mac_address: ${SPOOF_MAC:-02:42:ac:11:00:01}
+
+    ports:
+      # 只写容器端口 = 宿主端口随机分配。
+      # 这里必须写 6901: 容器里的 noVNC 监听的就是 6901(见 Dockerfile 的 NOVNC_PORT),
+      # 写成 ":6080" 会把宿主端口映到容器的 6080 上, 那个端口没人监听, 页面打不开。
+      # 查实际端口: docker compose port univpn 6901
+      - "6901"
+      - "1081:1080"   # SOCKS5 代理 (Dante)
+      - "8889:8888"   # HTTP 代理 (Tinyproxy -> SOCKS5)
+
+    environment:
+      # 容器里 VNC 密码的变量名是 VNC_PW, 这里兼容 .env 里的 VNC_PASSWORD
+      - VNC_PW=${VNC_PASSWORD:-univpn}
+      - VNC_RESOLUTION=${VNC_RESOLUTION:-1024x768}
+      - VNC_DEPTH=${VNC_DEPTH:-24}
+      - AUTO_RECONNECT=${AUTO_RECONNECT:-false}
+      - RECONNECT_PING_TARGET=${RECONNECT_PING_TARGET:-1.1.1.1}
+      - RECONNECT_GRACE_PERIOD=${RECONNECT_GRACE_PERIOD:-60}
+      - DANTE_INTERFACE=${DANTE_INTERFACE:-cnem_vnic}
+      - TZ=${TZ:-Asia/Shanghai}
+
+    volumes:
+      # 客户端设置(sysconfig.ini)和日志, 挂出来重建容器就不用重新填服务器地址
+      - ./data/univpn:/home/vpnuser/UniVPN
+
+    # GUI 应用要的共享内存, 默认 64MB 容易崩
+    shm_size: 1g

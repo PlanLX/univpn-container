@@ -1,0 +1,45 @@
+#!/bin/sh
+# 把 UniVPN 客户端的窗口拉回前台。
+#
+# 场景: 容器里是 fluxbox 这个极简窗口管理器, 窗口被最小化(或不小心关到托盘)之后,
+# 屏幕上可能只剩下背景, 没地方点回来。
+#
+# 用法(在宿主机上):
+#   docker compose exec univpn uvrestore
+#
+# 窗口标题不认识时可以自己给个正则:
+#   docker compose exec univpn uvrestore 'UniVPN|华为'
+set -eu
+
+# 以 root 执行时切回 vpnuser —— X 会话和 .Xauthority 都是 vpnuser 的
+if [ "$(id -u)" = "0" ]; then
+    exec sudo -u vpnuser -- env \
+        DISPLAY="${DISPLAY:-:1}" \
+        HOME=/home/vpnuser \
+        XAUTHORITY="${XAUTHORITY:-/home/vpnuser/.Xauthority}" \
+        /usr/local/bin/uvrestore "$@"
+fi
+
+export DISPLAY="${DISPLAY:-:1}"
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+
+PATTERN="${1:-[Uu]niVPN}"
+
+found=0
+for win in $(xdotool search --name "${PATTERN}" 2>/dev/null || true); do
+    # 只理会尺寸像主窗口的, 跳过 5x5 / 10x10 那种内部小窗
+    geo="$(xdotool getwindowgeometry --shell "${win}" 2>/dev/null || true)"
+    width="$(echo "${geo}" | sed -n 's/^WIDTH=//p')"
+    if [ -n "${width}" ] && [ "${width}" -gt 400 ] 2>/dev/null; then
+        xdotool windowmap "${win}" 2>/dev/null || true
+        xdotool windowactivate --sync "${win}" 2>/dev/null || true
+        xdotool windowraise "${win}" 2>/dev/null || true
+        found=1
+    fi
+done
+
+if [ "${found}" = "0" ]; then
+    echo "没找到匹配 '${PATTERN}' 的窗口, 客户端可能在重启中(看 docker compose logs)" >&2
+    exit 1
+fi
+echo "已把 UniVPN 窗口拉回前台"
