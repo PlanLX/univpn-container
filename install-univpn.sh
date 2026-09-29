@@ -49,10 +49,12 @@ installer="${archive}"
 case "${archive}" in
     *.zip)
         unzip -q -o "${archive}" -d "${work_dir}/unpacked"
-        installer="$(find "${work_dir}/unpacked" -type f -name 'univpn-linux-*' ! -name '*.zip' \
+        # zip 里除安装器还带着 .run.cms(签名)和 .run.crl(证书吊销列表),
+        # 宽松匹配会挑错文件(执行证书列表直接 126)。只认真正的安装器。
+        installer="$(find "${work_dir}/unpacked" -type f -name 'univpn-linux-*.run' \
             | head -n 1 || true)"
         if [ -z "${installer}" ]; then
-            echo "压缩包里没找到 univpn-linux-* 安装器" >&2
+            echo "压缩包里没找到 univpn-linux-*.run 安装器" >&2
             exit 1
         fi
         ;;
