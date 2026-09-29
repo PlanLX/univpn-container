@@ -3,6 +3,11 @@
 在浏览器里用华为 UniVPN 客户端: 不用在宿主机装客户端, 也不用装 VNC 客户端。
 打开 noVNC 页面就直接进桌面并连上, 密码自动填。
 
+[![Build](https://github.com/planlx/univpn-container/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/planlx/univpn-container/actions/workflows/docker-publish.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/planlx/univpn-container)](https://hub.docker.com/r/planlx/univpn-container)
+[![Image Size](https://img.shields.io/docker/image-size/planlx/univpn-container)](https://hub.docker.com/r/planlx/univpn-container)
+[![License](https://img.shields.io/github/license/planlx/univpn-container)](LICENSE)
+
 ## 快速开始
 
 ```bash
